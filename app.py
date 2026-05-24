@@ -667,59 +667,152 @@ def settings():
 
     return render_template('settings.html', org_name=org_name)
 
-# ─── Init DB (create default admin with proper hash) ─────────────────────────
+# ─── Database Init ────────────────────────────────────────────────────────────
 
-@app.cli.command('init-db')
 def init_db():
-    """Initialize the database with default admin."""
+    """
+    Create all tables if they don't exist, then seed default data.
+    Safe to run on every startup — uses IF NOT EXISTS and ON DUPLICATE KEY.
+    """
     db = get_db()
     try:
         with db.cursor() as cur:
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS admins (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    email VARCHAR(150) NOT NULL UNIQUE,
+                    password_hash VARCHAR(255) NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                ) CHARACTER SET utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS pets (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    species VARCHAR(50) NOT NULL,
+                    breed VARCHAR(100),
+                    age DECIMAL(4,1),
+                    gender ENUM('Male','Female','Unknown') DEFAULT 'Unknown',
+                    description TEXT,
+                    status ENUM('available','adopted') DEFAULT 'available',
+                    added_date DATETIME DEFAULT CURRENT_TIMESTAMP
+                ) CHARACTER SET utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS adopters (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    email VARCHAR(150) NOT NULL UNIQUE,
+                    phone VARCHAR(20),
+                    address TEXT,
+                    registered_date DATETIME DEFAULT CURRENT_TIMESTAMP
+                ) CHARACTER SET utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS adoption_requests (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    pet_id INT NOT NULL,
+                    adopter_id INT NOT NULL,
+                    request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    status ENUM('pending','approved','rejected') DEFAULT 'pending',
+                    resolved_date DATETIME,
+                    FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+                    FOREIGN KEY (adopter_id) REFERENCES adopters(id) ON DELETE CASCADE
+                ) CHARACTER SET utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS notices (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    message TEXT NOT NULL,
+                    posted_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    admin_id INT,
+                    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL
+                ) CHARACTER SET utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS settings (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    `key` VARCHAR(100) NOT NULL UNIQUE,
+                    value TEXT
+                ) CHARACTER SET utf8mb4
+            """)
+
+            # Default admin with proper hash
             pw_hash = generate_password_hash('admin123')
             cur.execute("""
                 INSERT INTO admins (name, email, password_hash)
                 VALUES ('Admin', 'admin@petadopt.com', %s)
-                ON DUPLICATE KEY UPDATE password_hash = %s
-            """, (pw_hash, pw_hash))
-        print("Default admin created: admin@petadopt.com / admin123")
+                ON DUPLICATE KEY UPDATE
+                    password_hash = IF(
+                        CHAR_LENGTH(password_hash) < 40,
+                        VALUES(password_hash),
+                        password_hash
+                    )
+            """, (pw_hash,))
+
+            # Default setting
+            cur.execute("""
+                INSERT INTO settings (`key`, value) VALUES ('org_name', 'PawsHome Adoption Center')
+                ON DUPLICATE KEY UPDATE `key` = `key`
+            """)
+
+            # Sample pets (only if table is empty)
+            cur.execute("SELECT COUNT(*) AS cnt FROM pets")
+            if cur.fetchone()['cnt'] == 0:
+                cur.executemany("""
+                    INSERT INTO pets (name, species, breed, age, gender, description, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, [
+                    ('Buddy',    'Dog',    'Golden Retriever', 2.0, 'Male',   'Friendly and energetic, loves fetch.',        'available'),
+                    ('Whiskers', 'Cat',    'Persian',          3.5, 'Female', 'Calm and affectionate, great with kids.',     'available'),
+                    ('Max',      'Dog',    'German Shepherd',  4.0, 'Male',   'Loyal and intelligent, well trained.',        'available'),
+                    ('Luna',     'Cat',    'Siamese',          1.5, 'Female', 'Playful Siamese kitten, very social.',        'available'),
+                    ('Charlie',  'Dog',    'Beagle',           3.0, 'Male',   'Curious Beagle, loves outdoor adventures.',  'available'),
+                    ('Bella',    'Rabbit', 'Holland Lop',      1.0, 'Female', 'Sweet Holland Lop, gentle and easy to care.','available'),
+                ])
+
+            # Sample adopters (only if table is empty)
+            cur.execute("SELECT COUNT(*) AS cnt FROM adopters")
+            if cur.fetchone()['cnt'] == 0:
+                cur.executemany("""
+                    INSERT INTO adopters (name, email, phone, address) VALUES (%s, %s, %s, %s)
+                """, [
+                    ('John Smith',    'john.smith@email.com', '555-0101', '123 Oak Street, Springfield'),
+                    ('Sarah Johnson', 'sarah.j@email.com',    '555-0102', '456 Maple Ave, Riverside'),
+                    ('Mike Davis',    'mike.davis@email.com', '555-0103', '789 Pine Road, Lakewood'),
+                ])
+
+            # Sample notices (only if table is empty)
+            cur.execute("SELECT COUNT(*) AS cnt FROM notices")
+            if cur.fetchone()['cnt'] == 0:
+                cur.execute("SELECT id FROM admins WHERE email = 'admin@petadopt.com'")
+                admin = cur.fetchone()
+                if admin:
+                    cur.executemany("""
+                        INSERT INTO notices (title, message, admin_id) VALUES (%s, %s, %s)
+                    """, [
+                        ('Welcome to PawsHome!',      'We are excited to help you find your perfect furry companion!', admin['id']),
+                        ('Adoption Event This Weekend','Join us Saturday for our special adoption event.',              admin['id']),
+                        ('New Pets Available',         'Several new pets are looking for loving homes. Check them out!',admin['id']),
+                    ])
+
+        print("[startup] Database initialised successfully.")
+    except Exception as e:
+        print(f"[startup] DB init error: {e}")
     finally:
         db.close()
 
-def ensure_default_admin():
-    """
-    Check if the default admin has a valid werkzeug hash.
-    If the hash is a placeholder (or missing), replace it with a proper hash.
-    Called at module level so it runs under both gunicorn and flask dev server.
-    """
-    try:
-        db = get_db()
-        with db.cursor() as cur:
-            cur.execute("SELECT id, password_hash FROM admins WHERE email = 'admin@petadopt.com'")
-            row = cur.fetchone()
-            pw_hash = generate_password_hash('admin123')
-            if not row:
-                cur.execute(
-                    "INSERT INTO admins (name, email, password_hash) VALUES ('Admin', 'admin@petadopt.com', %s)",
-                    (pw_hash,)
-                )
-                print("[startup] Default admin created.")
-            else:
-                h = row['password_hash']
-                # A real werkzeug hash has the form method$salt$hash (at least 2 '$')
-                is_valid = h.count('$') >= 2 and len(h) > 40
-                if not is_valid:
-                    cur.execute(
-                        "UPDATE admins SET password_hash = %s WHERE email = 'admin@petadopt.com'",
-                        (pw_hash,)
-                    )
-                    print("[startup] Default admin password hash fixed.")
-        db.close()
-    except Exception as e:
-        print(f"[startup] DB init warning: {e}")
 
-
-# Run on import so gunicorn workers also trigger the check
-ensure_default_admin()
+# Runs on import — works for both gunicorn workers and flask dev server
+init_db()
 
 
 if __name__ == '__main__':
