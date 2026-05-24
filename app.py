@@ -812,7 +812,10 @@ def init_db():
 
 
 # Runs on import — works for both gunicorn workers and flask dev server
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"[startup] init_db skipped: {e}")
 
 
 if __name__ == '__main__':
