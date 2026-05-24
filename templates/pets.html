@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Pets{% endblock %}
+{% block page_title %}Pets{% endblock %}
+{% block breadcrumb %}Home / Pets{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h4><i class="bi bi-heart-fill text-success me-2"></i>All Pets</h4>
+  <a href="{{ url_for('add_pet') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Add Pet
+  </a>
+</div>
+
+<!-- Search + Filter -->
+<div class="card mb-3">
+  <div class="card-body py-2 px-3">
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <!-- Search -->
+      <form method="GET" action="{{ url_for('pets') }}" class="d-flex gap-2 search-bar flex-grow-1">
+        <input type="hidden" name="status" value="{{ status_filter }}" />
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" class="form-control" name="search" id="searchInput"
+                 placeholder="Search by name, species, breed…" value="{{ search }}" />
+          {% if search %}
+          <a href="{{ url_for('pets', status=status_filter) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x"></i>
+          </a>
+          {% endif %}
+        </div>
+      </form>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <a href="{{ url_for('pets', search=search, status='all') }}"
+           class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All</a>
+        <a href="{{ url_for('pets', search=search, status='available') }}"
+           class="filter-tab {% if status_filter == 'available' %}active{% endif %}">
+          <i class="bi bi-check-circle me-1"></i>Available
+        </a>
+        <a href="{{ url_for('pets', search=search, status='adopted') }}"
+           class="filter-tab {% if status_filter == 'adopted' %}active{% endif %}">
+          <i class="bi bi-house-heart me-1"></i>Adopted
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    {% if pets %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Species</th>
+            <th>Breed</th>
+            <th>Age</th>
+            <th>Gender</th>
+            <th>Status</th>
+            <th>Added</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pet in pets %}
+          <tr>
+            <td class="text-muted" style="font-size:0.8rem;">{{ pet.id }}</td>
+            <td>
+              <strong>{{ pet.name }}</strong>
+            </td>
+            <td>
+              {% if pet.species|lower == 'dog' %}🐶
+              {% elif pet.species|lower == 'cat' %}🐱
+              {% elif pet.species|lower == 'rabbit' %}🐰
+              {% elif pet.species|lower == 'bird' %}🐦
+              {% else %}🐾{% endif %}
+              {{ pet.species }}
+            </td>
+            <td>{{ pet.breed or '—' }}</td>
+            <td>{{ pet.age ~ ' yrs' if pet.age else '—' }}</td>
+            <td>{{ pet.gender }}</td>
+            <td>
+              <span class="badge-{{ pet.status }}">
+                {% if pet.status == 'available' %}<i class="bi bi-check-circle me-1"></i>Available
+                {% else %}<i class="bi bi-house-heart me-1"></i>Adopted{% endif %}
+              </span>
+            </td>
+            <td style="font-size:0.8rem;color:#aaa;">
+              {{ pet.added_date.strftime('%b %d, %Y') if pet.added_date else '—' }}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('pet_detail', pet_id=pet.id) }}"
+                   class="btn btn-sm btn-outline-primary" title="View Details">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('edit_pet', pet_id=pet.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-danger" title="Delete"
+                        data-bs-toggle="modal" data-bs-target="#confirmModal"
+                        data-action="{{ url_for('delete_pet', pet_id=pet.id) }}"
+                        data-label="{{ pet.name }}">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-heart"></i>
+      <p>
+        {% if search %}No pets found matching "{{ search }}".
+        {% elif status_filter != 'all' %}No {{ status_filter }} pets found.
+        {% else %}No pets added yet. <a href="{{ url_for('add_pet') }}">Add the first pet!</a>{% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

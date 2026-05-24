@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Adopters{% endblock %}
+{% block page_title %}Adopters{% endblock %}
+{% block breadcrumb %}Home / Adopters{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h4><i class="bi bi-people-fill text-success me-2"></i>All Adopters</h4>
+  <a href="{{ url_for('add_adopter') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Add Adopter
+  </a>
+</div>
+
+<!-- Search -->
+<div class="card mb-3">
+  <div class="card-body py-2 px-3">
+    <form method="GET" action="{{ url_for('adopters') }}" class="d-flex gap-2">
+      <div class="input-group input-group-sm search-bar">
+        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" class="form-control" name="search" id="searchInput"
+               placeholder="Search by name or email…" value="{{ search }}" />
+        {% if search %}
+        <a href="{{ url_for('adopters') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x"></i>
+        </a>
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-sm btn-outline-primary">Search</button>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    {% if adopters %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Adoptions</th>
+            <th>Registered</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in adopters %}
+          <tr>
+            <td class="text-muted" style="font-size:0.8rem;">{{ a.id }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle">{{ a.name[:2]|upper }}</div>
+                <strong>{{ a.name }}</strong>
+              </div>
+            </td>
+            <td style="font-size:0.85rem;">{{ a.email }}</td>
+            <td style="font-size:0.85rem;">{{ a.phone or '—' }}</td>
+            <td style="font-size:0.82rem;color:#888;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ a.address or '—' }}
+            </td>
+            <td>
+              <span class="badge bg-success-subtle text-success fw-semibold">
+                {{ a.total_adoptions }}
+              </span>
+            </td>
+            <td style="font-size:0.8rem;color:#aaa;">
+              {{ a.registered_date.strftime('%b %d, %Y') if a.registered_date else '—' }}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('adopter_detail', adopter_id=a.id) }}"
+                   class="btn btn-sm btn-outline-primary" title="View">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('edit_adopter', adopter_id=a.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-danger" title="Delete"
+                        data-bs-toggle="modal" data-bs-target="#confirmModal"
+                        data-action="{{ url_for('delete_adopter', adopter_id=a.id) }}"
+                        data-label="{{ a.name }}">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-people"></i>
+      <p>
+        {% if search %}No adopters found matching "{{ search }}".
+        {% else %}No adopters registered yet. <a href="{{ url_for('add_adopter') }}">Add the first adopter!</a>{% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

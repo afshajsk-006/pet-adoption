@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ adopter.name }}{% endblock %}
+{% block page_title %}{{ adopter.name }}{% endblock %}
+{% block breadcrumb %}Home / Adopters / {{ adopter.name }}{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Adopter Info -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-person-fill text-success me-2"></i>Adopter Info</span>
+        <a href="{{ url_for('edit_adopter', adopter_id=adopter.id) }}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+      </div>
+      <div class="card-body">
+        <div class="text-center mb-3">
+          <div class="avatar-circle mx-auto mb-2"
+               style="width:64px;height:64px;font-size:1.4rem;background:var(--accent-light);color:var(--accent);">
+            {{ adopter.name[:2]|upper }}
+          </div>
+          <h5 class="fw-bold mb-0">{{ adopter.name }}</h5>
+          <div style="font-size:0.82rem;color:#888;">Registered Adopter</div>
+        </div>
+
+        <div class="list-group list-group-flush" style="font-size:0.88rem;">
+          <div class="list-group-item px-0 d-flex gap-2">
+            <i class="bi bi-envelope text-success mt-1"></i>
+            <div>
+              <div style="font-size:0.72rem;color:#aaa;text-transform:uppercase;font-weight:700;">Email</div>
+              {{ adopter.email }}
+            </div>
+          </div>
+          <div class="list-group-item px-0 d-flex gap-2">
+            <i class="bi bi-telephone text-success mt-1"></i>
+            <div>
+              <div style="font-size:0.72rem;color:#aaa;text-transform:uppercase;font-weight:700;">Phone</div>
+              {{ adopter.phone or '—' }}
+            </div>
+          </div>
+          <div class="list-group-item px-0 d-flex gap-2">
+            <i class="bi bi-geo-alt text-success mt-1"></i>
+            <div>
+              <div style="font-size:0.72rem;color:#aaa;text-transform:uppercase;font-weight:700;">Address</div>
+              {{ adopter.address or '—' }}
+            </div>
+          </div>
+          <div class="list-group-item px-0 d-flex gap-2">
+            <i class="bi bi-calendar text-success mt-1"></i>
+            <div>
+              <div style="font-size:0.72rem;color:#aaa;text-transform:uppercase;font-weight:700;">Registered</div>
+              {{ adopter.registered_date.strftime('%B %d, %Y') if adopter.registered_date else '—' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <button class="btn btn-sm btn-outline-danger w-100"
+                  data-bs-toggle="modal" data-bs-target="#confirmModal"
+                  data-action="{{ url_for('delete_adopter', adopter_id=adopter.id) }}"
+                  data-label="{{ adopter.name }}">
+            <i class="bi bi-trash3 me-1"></i>Delete Adopter
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adoption History -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-clock-history me-2 text-success"></i>Adoption History
+        <span class="badge bg-success-subtle text-success ms-2">{{ history|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if history %}
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Pet</th>
+                <th>Species</th>
+                <th>Request Date</th>
+                <th>Status</th>
+                <th>Resolved</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for h in history %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('pet_detail', pet_id=h.pet_id) }}"
+                     class="text-decoration-none fw-semibold">{{ h.pet_name }}</a>
+                  {% if h.breed %}<div style="font-size:0.78rem;color:#aaa;">{{ h.breed }}</div>{% endif %}
+                </td>
+                <td style="font-size:0.85rem;">{{ h.species }}</td>
+                <td style="font-size:0.82rem;">
+                  {{ h.request_date.strftime('%b %d, %Y') if h.request_date else '—' }}
+                </td>
+                <td>
+                  <span class="badge-{{ h.status }}">
+                    {% if h.status == 'pending' %}<i class="bi bi-clock me-1"></i>
+                    {% elif h.status == 'approved' %}<i class="bi bi-check-circle me-1"></i>
+                    {% else %}<i class="bi bi-x-circle me-1"></i>{% endif %}
+                    {{ h.status|capitalize }}
+                  </span>
+                </td>
+                <td style="font-size:0.82rem;color:#aaa;">
+                  {{ h.resolved_date.strftime('%b %d, %Y') if h.resolved_date else '—' }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-clock-history"></i>
+          <p>No adoption history for this adopter.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

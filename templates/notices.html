@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Notices{% endblock %}
+{% block page_title %}Notices{% endblock %}
+{% block breadcrumb %}Home / Notices{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Add Notice Form -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-megaphone-fill text-success me-2"></i>Post New Notice
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('add_notice') }}" data-loading>
+          <div class="mb-3">
+            <label class="form-label">Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="title" required
+                   placeholder="Notice title…" maxlength="200" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Message <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="message" rows="4" required
+                      placeholder="Write your notice here…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-send me-1"></i>Post Notice
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notices List -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-list-ul me-2 text-success"></i>All Notices</span>
+        <span class="badge bg-success-subtle text-success">{{ notices|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if notices %}
+          {% for n in notices %}
+          <div class="notice-card">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="flex-grow-1">
+                <div class="notice-title">{{ n.title }}</div>
+                <div class="notice-date">
+                  <i class="bi bi-clock me-1"></i>
+                  {{ n.posted_date.strftime('%B %d, %Y at %I:%M %p') if n.posted_date else '' }}
+                  {% if n.admin_name %}· by {{ n.admin_name }}{% endif %}
+                </div>
+                <div class="notice-msg mt-1">{{ n.message }}</div>
+              </div>
+              <button class="btn btn-sm btn-outline-danger flex-shrink-0"
+                      data-bs-toggle="modal" data-bs-target="#confirmModal"
+                      data-action="{{ url_for('delete_notice', notice_id=n.id) }}"
+                      data-label="{{ n.title }}" title="Delete">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-megaphone"></i>
+          <p>No notices posted yet. Use the form to post your first notice.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

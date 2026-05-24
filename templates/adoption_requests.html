@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Adoption Requests{% endblock %}
+{% block page_title %}Adoption Requests{% endblock %}
+{% block breadcrumb %}Home / Adoption Requests{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h4><i class="bi bi-clipboard2-check-fill text-success me-2"></i>Adoption Requests</h4>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addRequestModal">
+    <i class="bi bi-plus-lg me-1"></i>New Request
+  </button>
+</div>
+
+<!-- Pending Alert -->
+{% if pending_count > 0 %}
+<div class="alert-banner mb-3">
+  <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+  <span><strong>{{ pending_count }} pending request{{ 's' if pending_count != 1 }}</strong> awaiting review.</span>
+</div>
+{% endif %}
+
+<!-- Filter Tabs -->
+<div class="card mb-3">
+  <div class="card-body py-2 px-3">
+    <div class="filter-tabs">
+      <a href="{{ url_for('adoption_requests', status='all') }}"
+         class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All</a>
+      <a href="{{ url_for('adoption_requests', status='pending') }}"
+         class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">
+        <i class="bi bi-clock me-1"></i>Pending
+        {% if pending_count > 0 %}
+        <span class="badge bg-warning text-dark ms-1">{{ pending_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('adoption_requests', status='approved') }}"
+         class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">
+        <i class="bi bi-check-circle me-1"></i>Approved
+      </a>
+      <a href="{{ url_for('adoption_requests', status='rejected') }}"
+         class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">
+        <i class="bi bi-x-circle me-1"></i>Rejected
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    {% if requests %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Pet</th>
+            <th>Adopter</th>
+            <th>Request Date</th>
+            <th>Status</th>
+            <th>Resolved</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in requests %}
+          <tr>
+            <td class="text-muted" style="font-size:0.8rem;">{{ r.id }}</td>
+            <td>
+              <a href="{{ url_for('pet_detail', pet_id=r.pet_id) }}"
+                 class="text-decoration-none fw-semibold">{{ r.pet_name }}</a>
+              <div style="font-size:0.78rem;color:#aaa;">{{ r.species }}</div>
+            </td>
+            <td>
+              <a href="{{ url_for('adopter_detail', adopter_id=r.adopter_id) }}"
+                 class="text-decoration-none fw-semibold">{{ r.adopter_name }}</a>
+              <div style="font-size:0.78rem;color:#aaa;">{{ r.adopter_email }}</div>
+            </td>
+            <td style="font-size:0.82rem;">
+              {{ r.request_date.strftime('%b %d, %Y') if r.request_date else '—' }}
+            </td>
+            <td>
+              <span class="badge-{{ r.status }}">
+                {% if r.status == 'pending' %}<i class="bi bi-clock me-1"></i>
+                {% elif r.status == 'approved' %}<i class="bi bi-check-circle me-1"></i>
+                {% else %}<i class="bi bi-x-circle me-1"></i>{% endif %}
+                {{ r.status|capitalize }}
+              </span>
+            </td>
+            <td style="font-size:0.82rem;color:#aaa;">
+              {{ r.resolved_date.strftime('%b %d, %Y') if r.resolved_date else '—' }}
+            </td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                {% if r.status == 'pending' %}
+                <button class="btn btn-sm btn-success" title="Approve"
+                        data-bs-toggle="modal" data-bs-target="#actionModal"
+                        data-action="{{ url_for('approve_request', req_id=r.id) }}"
+                        data-type="approve"
+                        data-label="{{ r.pet_name }} by {{ r.adopter_name }}">
+                  <i class="bi bi-check-lg me-1"></i>Approve
+                </button>
+                <button class="btn btn-sm btn-outline-danger" title="Reject"
+                        data-bs-toggle="modal" data-bs-target="#actionModal"
+                        data-action="{{ url_for('reject_request', req_id=r.id) }}"
+                        data-type="reject"
+                        data-label="{{ r.pet_name }} by {{ r.adopter_name }}">
+                  <i class="bi bi-x-lg me-1"></i>Reject
+                </button>
+                {% endif %}
+                <button class="btn btn-sm btn-outline-secondary" title="Delete"
+                        data-bs-toggle="modal" data-bs-target="#confirmModal"
+                        data-action="{{ url_for('delete_request', req_id=r.id) }}"
+                        data-label="request #{{ r.id }}">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-clipboard2-x"></i>
+      <p>
+        {% if status_filter != 'all' %}No {{ status_filter }} requests found.
+        {% else %}No adoption requests yet.{% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add Request Modal -->
+<div class="modal fade" id="addRequestModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle text-success me-2"></i>New Adoption Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_adoption_request') }}" data-loading>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Pet (Available Only) <span class="text-danger">*</span></label>
+            <select class="form-select" name="pet_id" required>
+              <option value="">Select a pet…</option>
+              {% for p in available_pets %}
+              <option value="{{ p.id }}">{{ p.name }} ({{ p.species }})</option>
+              {% endfor %}
+            </select>
+            {% if not available_pets %}
+            <div class="form-text text-warning">No available pets at the moment.</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Adopter <span class="text-danger">*</span></label>
+            <select class="form-select" name="adopter_id" required>
+              <option value="">Select an adopter…</option>
+              {% for a in all_adopters %}
+              <option value="{{ a.id }}">{{ a.name }} ({{ a.email }})</option>
+              {% endfor %}
+            </select>
+            {% if not all_adopters %}
+            <div class="form-text text-warning">No adopters registered yet.</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Create Request
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

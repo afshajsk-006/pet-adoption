@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}{{ pet.name }}{% endblock %}
+{% block page_title %}{{ pet.name }}{% endblock %}
+{% block breadcrumb %}Home / Pets / {{ pet.name }}{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Pet Info Card -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span>
+          {% if pet.species|lower == 'dog' %}🐶
+          {% elif pet.species|lower == 'cat' %}🐱
+          {% elif pet.species|lower == 'rabbit' %}🐰
+          {% elif pet.species|lower == 'bird' %}🐦
+          {% else %}🐾{% endif %}
+          Pet Information
+        </span>
+        <a href="{{ url_for('edit_pet', pet_id=pet.id) }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+      </div>
+      <div class="card-body">
+        <!-- Name + Status -->
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:60px;height:60px;background:var(--accent-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;">
+            {% if pet.species|lower == 'dog' %}🐶
+            {% elif pet.species|lower == 'cat' %}🐱
+            {% elif pet.species|lower == 'rabbit' %}🐰
+            {% else %}🐾{% endif %}
+          </div>
+          <div>
+            <h5 class="mb-1 fw-bold">{{ pet.name }}</h5>
+            <span class="badge-{{ pet.status }}">
+              {% if pet.status == 'available' %}<i class="bi bi-check-circle me-1"></i>Available
+              {% else %}<i class="bi bi-house-heart me-1"></i>Adopted{% endif %}
+            </span>
+          </div>
+        </div>
+
+        <!-- Info Grid -->
+        <div class="pet-info-grid">
+          <div class="pet-info-item">
+            <div class="info-label">Species</div>
+            <div class="info-value">{{ pet.species }}</div>
+          </div>
+          <div class="pet-info-item">
+            <div class="info-label">Breed</div>
+            <div class="info-value">{{ pet.breed or '—' }}</div>
+          </div>
+          <div class="pet-info-item">
+            <div class="info-label">Age</div>
+            <div class="info-value">{{ pet.age ~ ' yrs' if pet.age else '—' }}</div>
+          </div>
+          <div class="pet-info-item">
+            <div class="info-label">Gender</div>
+            <div class="info-value">{{ pet.gender }}</div>
+          </div>
+          <div class="pet-info-item">
+            <div class="info-label">Added</div>
+            <div class="info-value" style="font-size:0.82rem;">
+              {{ pet.added_date.strftime('%b %d, %Y') if pet.added_date else '—' }}
+            </div>
+          </div>
+        </div>
+
+        {% if pet.description %}
+        <div class="mt-3 p-3" style="background:#f8faf8;border-radius:10px;">
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:#999;margin-bottom:0.3rem;">Description</div>
+          <p style="font-size:0.88rem;color:#555;margin:0;">{{ pet.description }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Delete -->
+        <div class="mt-3">
+          <button class="btn btn-sm btn-outline-danger w-100"
+                  data-bs-toggle="modal" data-bs-target="#confirmModal"
+                  data-action="{{ url_for('delete_pet', pet_id=pet.id) }}"
+                  data-label="{{ pet.name }}">
+            <i class="bi bi-trash3 me-1"></i>Delete Pet
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Adopter -->
+    {% if current_adopter %}
+    <div class="card mt-3">
+      <div class="card-header">
+        <i class="bi bi-person-check-fill text-success me-2"></i>Current Adopter
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div class="avatar-circle" style="width:44px;height:44px;font-size:1rem;">
+            {{ current_adopter.adopter_name[:2]|upper }}
+          </div>
+          <div>
+            <div class="fw-bold">{{ current_adopter.adopter_name }}</div>
+            <div style="font-size:0.82rem;color:#888;">{{ current_adopter.adopter_email }}</div>
+            {% if current_adopter.adopter_phone %}
+            <div style="font-size:0.82rem;color:#888;">{{ current_adopter.adopter_phone }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="mt-2">
+          <a href="{{ url_for('adopter_detail', adopter_id=current_adopter.adopter_id) }}"
+             class="btn btn-sm btn-outline-primary w-100">
+            <i class="bi bi-person me-1"></i>View Adopter Profile
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Adoption History -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-clock-history me-2 text-success"></i>Adoption History
+      </div>
+      <div class="card-body p-0">
+        {% if history %}
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Adopter</th>
+                <th>Request Date</th>
+                <th>Status</th>
+                <th>Resolved</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for h in history %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('adopter_detail', adopter_id=h.adopter_id) }}"
+                     class="text-decoration-none fw-semibold">{{ h.adopter_name }}</a>
+                  <div style="font-size:0.78rem;color:#aaa;">{{ h.adopter_email }}</div>
+                </td>
+                <td style="font-size:0.82rem;">
+                  {{ h.request_date.strftime('%b %d, %Y') if h.request_date else '—' }}
+                </td>
+                <td>
+                  <span class="badge-{{ h.status }}">
+                    {% if h.status == 'pending' %}<i class="bi bi-clock me-1"></i>
+                    {% elif h.status == 'approved' %}<i class="bi bi-check-circle me-1"></i>
+                    {% else %}<i class="bi bi-x-circle me-1"></i>{% endif %}
+                    {{ h.status|capitalize }}
+                  </span>
+                </td>
+                <td style="font-size:0.82rem;color:#aaa;">
+                  {{ h.resolved_date.strftime('%b %d, %Y') if h.resolved_date else '—' }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-clock-history"></i>
+          <p>No adoption history for this pet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block breadcrumb %}Home / Settings{% endblock %}
+
+{% block content %}
+<div class="row g-3 justify-content-center">
+
+  <!-- Organization Settings -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-building text-success me-2"></i>Organization Settings
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings') }}" data-loading>
+          <input type="hidden" name="action" value="update_org" />
+          <div class="mb-3">
+            <label class="form-label">Organization Name</label>
+            <input type="text" class="form-control" name="org_name"
+                   value="{{ org_name }}" required placeholder="e.g. PawsHome Adoption Center" />
+            <div class="form-text">This name appears in the sidebar and page titles.</div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Save Changes
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Info -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-person-circle text-success me-2"></i>Admin Account
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-3 p-3"
+             style="background:#f8faf8;border-radius:10px;">
+          <div class="avatar-circle" style="width:52px;height:52px;font-size:1.2rem;">
+            {{ current_user.initials }}
+          </div>
+          <div>
+            <div class="fw-bold">{{ current_user.name }}</div>
+            <div style="font-size:0.85rem;color:#888;">{{ current_user.email }}</div>
+            <div style="font-size:0.75rem;color:#aaa;">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-shield-lock-fill text-success me-2"></i>Change Password
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings') }}" data-loading>
+          <input type="hidden" name="action" value="change_password" />
+          <div class="mb-3">
+            <label class="form-label">Current Password</label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="current_password"
+                     id="currentPw" required placeholder="Enter current password" />
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePw('currentPw','currentPwIcon')">
+                <i class="bi bi-eye" id="currentPwIcon"></i>
+              </button>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="new_password"
+                     id="newPw" required placeholder="Min. 6 characters" minlength="6" />
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePw('newPw','newPwIcon')">
+                <i class="bi bi-eye" id="newPwIcon"></i>
+              </button>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">Confirm New Password</label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="confirm_password"
+                     id="confirmPw" required placeholder="Repeat new password" />
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePw('confirmPw','confirmPwIcon')">
+                <i class="bi bi-eye" id="confirmPwIcon"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-lock me-1"></i>Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Info -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-info-circle text-success me-2"></i>Application Info
+      </div>
+      <div class="card-body">
+        <table class="table table-sm" style="font-size:0.88rem;">
+          <tbody>
+            <tr><td class="text-muted">Application</td><td><strong>PawsHome Adoption System</strong></td></tr>
+            <tr><td class="text-muted">Version</td><td>1.0.0</td></tr>
+            <tr><td class="text-muted">Framework</td><td>Flask + MySQL</td></tr>
+            <tr><td class="text-muted">Admin Email</td><td>{{ current_user.email }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function togglePw(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.className = 'bi bi-eye-slash';
+  } else {
+    input.type = 'password';
+    icon.className = 'bi bi-eye';
+  }
+}
+</script>
+{% endblock %}

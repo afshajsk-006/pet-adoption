@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if edit else 'Add' }} Pet{% endblock %}
+{% block page_title %}{{ 'Edit' if edit else 'Add' }} Pet{% endblock %}
+{% block breadcrumb %}Home / Pets / {{ 'Edit' if edit else 'Add' }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-heart-fill text-success me-2"></i>
+        {{ 'Edit Pet Details' if edit else 'Add New Pet' }}
+      </div>
+      <div class="card-body">
+        <form method="POST"
+              action="{{ url_for('edit_pet', pet_id=pet.id) if edit else url_for('add_pet') }}"
+              data-loading>
+          <div class="row g-3">
+            <!-- Name -->
+            <div class="col-md-6">
+              <label class="form-label">Pet Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="name" required
+                     value="{{ pet.name if pet else '' }}" placeholder="e.g. Buddy" />
+            </div>
+
+            <!-- Species -->
+            <div class="col-md-6">
+              <label class="form-label">Species <span class="text-danger">*</span></label>
+              <select class="form-select" name="species" required>
+                <option value="">Select species…</option>
+                {% for s in ['Dog','Cat','Rabbit','Bird','Fish','Hamster','Other'] %}
+                <option value="{{ s }}"
+                  {% if pet and pet.species == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Breed -->
+            <div class="col-md-6">
+              <label class="form-label">Breed</label>
+              <input type="text" class="form-control" name="breed"
+                     value="{{ pet.breed if pet and pet.breed else '' }}"
+                     placeholder="e.g. Golden Retriever" />
+            </div>
+
+            <!-- Age -->
+            <div class="col-md-3">
+              <label class="form-label">Age (years)</label>
+              <input type="number" class="form-control" name="age" min="0" max="30" step="0.5"
+                     value="{{ pet.age if pet and pet.age else '' }}" placeholder="e.g. 2" />
+            </div>
+
+            <!-- Gender -->
+            <div class="col-md-3">
+              <label class="form-label">Gender</label>
+              <select class="form-select" name="gender">
+                {% for g in ['Male','Female','Unknown'] %}
+                <option value="{{ g }}"
+                  {% if pet and pet.gender == g %}selected{% elif not pet and g == 'Unknown' %}selected{% endif %}>
+                  {{ g }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Status (edit only) -->
+            {% if edit %}
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <option value="available" {% if pet.status == 'available' %}selected{% endif %}>Available</option>
+                <option value="adopted" {% if pet.status == 'adopted' %}selected{% endif %}>Adopted</option>
+              </select>
+            </div>
+            {% endif %}
+
+            <!-- Description -->
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" name="description" rows="3"
+                        placeholder="Brief description about the pet…">{{ pet.description if pet and pet.description else '' }}</textarea>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-{{ 'check-lg' if edit else 'plus-lg' }} me-1"></i>
+              {{ 'Save Changes' if edit else 'Add Pet' }}
+            </button>
+            <a href="{{ url_for('pet_detail', pet_id=pet.id) if edit else url_for('pets') }}"
+               class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
